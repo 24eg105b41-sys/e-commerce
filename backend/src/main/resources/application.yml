@@ -1,0 +1,115 @@
+server:
+  port: ${PORT:8080}
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: shopsphere-backend
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  datasource:
+    url: ${DB_URL:jdbc:h2:file:./data/shopsphere_db;DB_CLOSE_DELAY=-1;MODE=MySQL;DATABASE_TO_LOWER=TRUE}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 300000
+      connection-timeout: 20000
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: true
+
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL:update}
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+    open-in-view: false
+
+  cache:
+    type: caffeine
+    cache-names:
+      - categories
+      - activeCategories
+      - productDetails
+      - popularProducts
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=60m
+
+# Spring Boot Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# Application Security and JWT
+app:
+  jwt:
+    secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000} # 24 hours
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+  admin:
+    default-name: "Campus Admin"
+    default-email: ${ADMIN_EMAIL:admin@shopsphere.edu}
+    default-password: ${ADMIN_PASSWORD:Admin@Campus2026}
+  ai:
+    provider: ${AI_PROVIDER:local} # local, gemini, or openai
+    api-key: ${AI_API_KEY:}
+    model: ${AI_MODEL:gemini-1.5-flash}
+    base-url: ${AI_BASE_URL:https://generativelanguage.googleapis.com}
+
+---
+# Test profile for in-memory H2 database during automated tests
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  datasource:
+    url: jdbc:h2:mem:shopsphere_test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: false
+
+---
+# MySQL profile for production or local MySQL environments
+spring:
+  config:
+    activate:
+      on-profile: mysql
+
+  datasource:
+    url: ${DB_URL:jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:shopsphere_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL:update}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
